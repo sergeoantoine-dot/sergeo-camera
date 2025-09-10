@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+ <title>Caméra en direct</title>
+ <style>
+ body {
+ font-family: sans-serif;
+ text-align: center;
+ background: #111;
+ color: white;
+ padding: 20px;
+ }
+ video {
+ width: 90%;
+ max-width: 600px;
+ margin: 20px auto;
+ border: 4px solid #0f0;
+ border-radius: 10px;
+ }
+ button {
+ margin: 10px;
+ padding: 12px 20px;
+ font-size: 16px;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+ }
+ #startBtn { background-color: #28a745; color: white; }
+ #stopBtn { background-color: #dc3545; color: white; }
+ #recordBtn { background-color: #007bff; color: white; }
+ </style>
+</head>
+<body>
+ <h1>Caméra en direct 📷</h1>
+ <video id="video" autoplay playsinline muted></video>
+ <br>
+ <button id="startBtn">▶️ Démarrer la caméra</button>
+ <button id="stopBtn" disabled>⏹️ Arrêter la caméra</button>
+ <button id="recordBtn" disabled>🔴 Enregistrer</button>
+ <script>
+ let video = document.getElementById('video');
+ let startBtn = document.getElementById('startBtn');
+ let stopBtn = document.getElementById('stopBtn');
+ let recordBtn = document.getElementById('recordBtn');
+ let stream;
+ let mediaRecorder;
+ let recordedChunks = [];
+ startBtn.onclick = async () => {
+ try {
+ stream = await navigator.mediaDevices.getUserMedia({ video: true, 
+audio: true });
+ video.srcObject = stream;
+ startBtn.disabled = true;
+ stopBtn.disabled = false;
+ recordBtn.disabled = false;
+ } catch (err) {
+ alert("Erreur d'accès à la caméra : " + err.message);
+ console.error(err);
+ }
+ };
+ stopBtn.onclick = () => {
+ if (stream) {
+ stream.getTracks().forEach(track => track.stop());
+ video.srcObject = null;
+ startBtn.disabled = false;
+ stopBtn.disabled = true;
+ recordBtn.disabled = true;
+ }
+ };
+ recordBtn.onclick = () => {
+ if (mediaRecorder && mediaRecorder.state === "recording") {
+ mediaRecorder.stop();
+ recordBtn.textContent = "🔴 Enregistrer";
+ } else if (stream) {
+ recordedChunks = [];
+ mediaRecorder = new MediaRecorder(stream);
+ mediaRecorder.ondataavailable = e => {
+ if (e.data.size > 0) recordedChunks.push(e.data);
+ };
+ mediaRecorder.onstop = () => {
+ const blob = new Blob(recordedChunks, { type: 'video/webm' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.style.display = 'none';
+ a.href = url;
+ a.download = 'enregistrement.webm';
+ document.body.appendChild(a);
+ a.click();
+ URL.revokeObjectURL(url);
+ };
+ mediaRecorder.start();
+ recordBtn.textContent = "⏹️ Stop Enregistrement";
+ }
+ };
+ </script>
+</body>
+</html>
